@@ -116,7 +116,7 @@ services:
     container_name: tailscale
     hostname: my-service
     environment:
-      - TS_AUTHKEY=tskey-auth-xxxxx  # Pre-auth key
+      - TS_AUTHKEY=tskey-auth-<REDACTED>  # Pre-auth key
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_EXTRA_ARGS=--advertise-tags=tag:container
     volumes:
@@ -142,7 +142,7 @@ metadata:
   namespace: tailscale
 type: Opaque
 stringData:
-  TS_AUTHKEY: "tskey-auth-xxxxx"
+  TS_AUTHKEY: "tskey-auth-<REDACTED>"
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -347,7 +347,7 @@ tailscale up --login-server https://headscale.example.com
 # Force re-authentication periodically
 
 # Disable key expiry for servers (use auth keys instead)
-sudo tailscale up --authkey=tskey-auth-xxxxx
+sudo tailscale up --authkey=tskey-auth-<REDACTED>
 
 # Pre-auth keys for automated deployment
 # Create ephemeral, single-use keys for CI/CD
@@ -422,7 +422,7 @@ tailscale netcheck
 
 ```bash
 # Use ephemeral auth keys in CI/CD
-export TS_AUTHKEY=tskey-auth-xxxxx-ephemeral
+export TS_AUTHKEY=tskey-auth-<REDACTED>-ephemeral
 tailscale up --authkey=$TS_AUTHKEY --hostname=ci-runner-$CI_JOB_ID
 
 # Access internal resources during build/deploy
