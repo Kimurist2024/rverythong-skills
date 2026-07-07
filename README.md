@@ -7,22 +7,22 @@ Claude Code 用のスキル・サブエージェント・スクリプト集。**
 ## 構成
 
 ```
-skills/          835 スキル(オリジナル5 + cybersecurity 817 + taste 13)
-  fable/                観測駆動の作業規程(3原則+Phase0-4)
-  security-ops/         セキュリティ 817 のルーター
-  cost-route/           モデル階層×実行経路のコスト・ルーティング
-  design-taste-jp/      taste 系の日本語運用層 + 和文タイポ
-  skills-map/           分野別インデックス(まずここを開く)
-  <817 cybersecurity>   exploiting-/detecting-/analyzing-/hunting-/... (第三者)
-  <13 taste/design>     taste-skill/minimalist-skill/soft-skill/... (第三者)
-agents/          2 サブエージェント
-  security-analyst.md   防御セキュリティ(DFIR/検知/脅威インテリ)
-  pentest-operator.md   攻撃セキュリティ(認可ゲート内蔵)
+skills/          996 スキル
+  ├ オリジナル5    fable / security-ops / cost-route / design-taste-jp / skills-map
+  ├ cybersecurity  817(第三者 exploiting-/detecting-/analyzing-/hunting-/...)
+  ├ taste/design   13(第三者 taste-skill/minimalist-skill/soft-skill/...)
+  └ ECC ほか       161(Everything Claude Code 等の汎用スキル群)
+agents/          49 サブエージェント
+  ├ security-analyst.md   防御セキュリティ(DFIR/検知/脅威インテリ)
+  ├ pentest-operator.md   攻撃セキュリティ(認可ゲート内蔵)
+  └ その他47              ECC 標準エージェント群(code-reviewer / architect / ...)
 scripts/         cost-report.js   月次コスト集計(セッションログから)
 bin/             ask-claude       Anthropic API 直叩きラッパー
 manifests/       第三者バンドルの出典・件数・復元手順
 licenses/        第三者バンドルの上流ライセンス
 ```
+
+> **注**: owner の非公開プロジェクトや個人情報に固有の一部エージェント/スキルは意図的に除外しています。詳細は [ATTRIBUTION.md](ATTRIBUTION.md)。
 
 ## クイックスタート
 

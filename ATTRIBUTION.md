@@ -33,6 +33,17 @@
 - **対象**: `manifests/taste-skills-manifest.txt` に列挙された 13 スキルディレクトリ
 - **加えた変更**: 各 `SKILL.md` の frontmatter に `user-invocable: false` を1行追加。本文は未改変。日本語運用の上乗せは別ファイル `skills/design-taste-jp`(オリジナル)で行っており、上流スキルは改変していない。
 
+## 追加のスキル・サブエージェント(ECC ほか)
+
+`skills/` の残り(オリジナル5 + cyber 817 + taste 13 を除いた約161件)と `agents/` のサブエージェント群(security-analyst / pentest-operator 以外)は、リポジトリ owner の Claude Code 環境に導入されていたもので、主に **Everything Claude Code(ECC)** ツールキットおよびその他の公開ソース由来です。
+
+- 各ファイルは元の frontmatter(`name` / `description` 等)と作者情報を保持しています。
+- 正確なライセンス条件は各上流プロジェクトを参照してください（本リポジトリは再配布物として同梱するのみで、オリジナル著作権を主張しません）。
+
+## 除外した私的アイテム(公開しない)
+
+owner の非公開プロジェクトや個人の学業に固有のエージェント・スキル(計7件)は、私的な文脈・ローカルパス・所属情報を含むため、**意図的に本リポジトリから除外**しています(汎用性が無く公開に適さないため)。
+
 ## 注記
 
 - 各第三者スキルディレクトリ内の frontmatter には元の `author` / `license` フィールドが保持されています。
