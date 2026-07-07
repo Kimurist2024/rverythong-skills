@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# ask-claude — Anthropic Messages API へ直叩きでタスクを投げる薄いラッパー。
+#
+# 目的: 重い/反復ジョブを Claude Code の外で安く回す。Claude Code は毎ターン
+# 巨大な system prompt + CLAUDE.md + rules + skills + hooks を再送していて input
+# が常に重い。直叩きは必要なプロンプトだけを送り、prompt caching で更に削る。
+#
+# 要 ANTHROPIC_API_KEY(未設定なら明示エラーで停止)。
+#
+# 使い方:
+#   export ANTHROPIC_API_KEY=sk-ant-...
+#   ask-claude "1行タスク"
+#   ask-claude -m claude-opus-4-8 --max 8192 "重い判断タスク"
+#   ask-claude --system prompt.md "<user prompt>"    # system をキャッシュ(反復で input 約90%off)
+#   cat big.txt | ask-claude "この内容を要約"
+#
+# 環境変数:
+#   ASK_CLAUDE_MODEL       既定モデル(既定: claude-sonnet-5)
+#   ASK_CLAUDE_MAX_TOKENS  既定 max_tokens(既定: 4096)
+#
+# モデルID例: claude-haiku-4-5-20251001 / claude-sonnet-5 / claude-opus-4-8 / claude-fable-5
+# 大量の非同期バッチは Message Batches API(/v1/messages/batches, 50%off)が本命。
+# このラッパーは同期1発。バッチ化は次段(必要になったら拡張)。
+set -euo pipefail
+
+MODEL="${ASK_CLAUDE_MODEL:-claude-sonnet-5}"
+MAX="${ASK_CLAUDE_MAX_TOKENS:-4096}"
+SYSTEM=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -m|--model) MODEL="$2"; shift 2;;
+    --max)      MAX="$2"; shift 2;;
+    --system)   SYSTEM="$2"; shift 2;;
+    -h|--help)  echo "usage: ask-claude [-m model] [--max N] [--system STR|FILE] '<prompt>'"; exit 0;;
+    --)         shift; break;;
+    -*)         echo "ask-claude: 不明なオプション $1" >&2; exit 2;;
+    *)          break;;
+  esac
+done
+
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+  echo "ask-claude: ANTHROPIC_API_KEY が未設定です。'export ANTHROPIC_API_KEY=...' してから使ってください。" >&2
+  exit 3
+fi
+
+if [ "$#" -gt 0 ]; then PROMPT="$*"; else PROMPT="$(cat)"; fi
+if [ -z "${PROMPT//[[:space:]]/}" ]; then echo "ask-claude: プロンプトが空です" >&2; exit 2; fi
+
+# --system がファイルパスなら中身を読む
+if [ -n "$SYSTEM" ] && [ -f "$SYSTEM" ]; then SYSTEM="$(cat "$SYSTEM")"; fi
+
+PY="$(command -v python3 || echo /opt/homebrew/bin/python3)"
+if [ ! -x "$PY" ]; then echo "ask-claude: python3 が見つかりません" >&2; exit 127; fi
+
+MODEL="$MODEL" MAX="$MAX" SYSTEM="$SYSTEM" PROMPT="$PROMPT" "$PY" <<'PYEOF'
+import os, json, sys, urllib.request, urllib.error
+key = os.environ["ANTHROPIC_API_KEY"]
+model = os.environ["MODEL"]
+max_tokens = int(os.environ["MAX"])
+system = os.environ.get("SYSTEM", "")
+prompt = os.environ["PROMPT"]
+
+body = {"model": model, "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": prompt}]}
+if system.strip():
+    # system ブロックを prompt caching 対象にする(同一 system の反復呼びで input 大幅減)
+    body["system"] = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+
+req = urllib.request.Request(
+    "https://api.anthropic.com/v1/messages",
+    data=json.dumps(body).encode("utf-8"),
+    headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+             "content-type": "application/json"})
+try:
+    r = urllib.request.urlopen(req)
+except urllib.error.HTTPError as e:
+    sys.stderr.write("ask-claude: API error %s\n%s\n" % (e.code, e.read().decode("utf-8", "replace")[:800]))
+    sys.exit(1)
+except urllib.error.URLError as e:
+    sys.stderr.write("ask-claude: 接続失敗 %s\n" % e.reason)
+    sys.exit(1)
+
+resp = json.load(r)
+text = "".join(b.get("text", "") for b in resp.get("content", []) if b.get("type") == "text")
+u = resp.get("usage", {})
+sys.stdout.write(text + "\n")
+sys.stderr.write("[ask-claude] model=%s in=%s out=%s cache_read=%s cache_write=%s\n" % (
+    model, u.get("input_tokens"), u.get("output_tokens"),
+    u.get("cache_read_input_tokens"), u.get("cache_creation_input_tokens")))
+PYEOF
